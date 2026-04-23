@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>⚔️ Tavern Tabletop</title>
+<link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+<!-- ══ AUTH SCREEN ══ -->
+<div id="auth-screen">
+  <div class="auth-box"><span class="ac tl"></span><span class="ac tr"></span><span class="ac bl"></span><span class="ac br"></span>
+    <div class="auth-logo">🏰</div>
+    <h1 class="auth-title">Tavern Tabletop</h1>
+    <p class="auth-sub">Enter the realm of shared stories</p>
+    <div class="divider"></div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchTab('login')">Enter Tavern</button>
+      <button class="auth-tab" onclick="switchTab('register')">New Adventurer</button>
+    </div>
+    <div id="tab-login">
+      <input class="auth-input" type="text" id="login-name" placeholder="Your name..." autocomplete="username"/>
+      <input class="auth-input" type="password" id="login-pass" placeholder="Your secret word..." autocomplete="current-password"/>
+      <div id="login-error" class="auth-error"></div>
+      <button class="btn btn-primary" onclick="doLogin()">⚔ Enter</button>
+    </div>
+    <div id="tab-register" style="display:none">
+      <input class="auth-input" type="text" id="reg-name" placeholder="Choose your name..." maxlength="24" autocomplete="username"/>
+      <input class="auth-input" type="password" id="reg-pass" placeholder="Secret word..." autocomplete="new-password"/>
+      <input class="auth-input" type="password" id="reg-pass2" placeholder="Confirm secret word..." autocomplete="new-password"/>
+      <div id="reg-error" class="auth-error"></div>
+      <button class="btn btn-primary" onclick="doRegister()">📜 Create Character</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ROOM LOBBY ══ -->
+<div id="lobby-screen" style="display:none">
+  <div class="lobby-box"><span class="lc tl"></span><span class="lc tr"></span><span class="lc bl"></span><span class="lc br"></span>
+    <div class="auth-logo">⚔️</div>
+    <h2 class="auth-title" id="lobby-welcome">Welcome!</h2>
+    <p class="auth-sub">Choose your path</p>
+    <div class="divider"></div>
+    <div class="lobby-options">
+      <div class="lobby-card" onclick="showCreateRoom()">
+        <div class="lobby-icon">👑</div>
+        <div class="lobby-card-title">Create Room</div>
+        <div class="lobby-card-sub">Be the Dungeon Master</div>
+      </div>
+      <div class="lobby-card" onclick="showJoinRoom()">
+        <div class="lobby-icon">🗡️</div>
+        <div class="lobby-card-title">Join Room</div>
+        <div class="lobby-card-sub">Enter as a player</div>
+      </div>
+    </div>
+    <div id="create-room-form" style="display:none" class="room-form">
+      <input class="auth-input" id="room-name-input" placeholder="Room name (optional)" maxlength="40"/>
+      <button class="btn btn-primary" onclick="doCreateRoom()">👑 Create &amp; Become DM</button>
+      <button class="btn btn-sm" onclick="hideRoomForms()">Cancel</button>
+    </div>
+    <div id="join-room-form" style="display:none" class="room-form">
+      <input class="auth-input" id="room-code-input" placeholder="Room code (e.g. AB3X7Y)" maxlength="6" style="text-transform:uppercase;letter-spacing:.2em"/>
+      <button class="btn btn-primary" onclick="doJoinRoom()">🗡️ Join Room</button>
+      <button class="btn btn-sm" onclick="hideRoomForms()">Cancel</button>
+    </div>
+    <div id="lobby-error" class="auth-error" style="margin-top:8px"></div>
+    <div style="margin-top:16px">
+      <button class="btn btn-sm btn-danger" onclick="doLogout()">✕ Logout</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MAIN APP ══ -->
+<div id="app" style="display:none">
+  <div id="topbar">
+    <div class="topbar-left">
+      <span class="topbar-logo">⚔</span>
+      <span class="topbar-title" id="topbar-room-name">Tavern</span>
+      <span class="room-code-badge" id="room-code-badge"></span>
+      <span class="dm-badge" id="dm-badge" style="display:none">👑 DM</span>
+    </div>
+    <div class="topbar-nav">
+      <button class="nav-btn active" data-view="board" onclick="switchView('board')">🗺 Board</button>
+      <button class="nav-btn" data-view="sheet" onclick="switchView('sheet')">📜 My Sheet</button>
+      <button class="nav-btn" data-view="story" onclick="switchView('story')">📖 Story</button>
+      <button class="nav-btn dm-only" id="dm-tab" data-view="dm" onclick="switchView('dm')">👑 DM</button>
+    </div>
+    <div class="topbar-right">
+      <span id="online-badge">0 online</span>
+      <div class="conn-dot" id="conn-dot"></div>
+      <button class="btn btn-sm" onclick="leaveRoom()">🚪 Leave</button>
+    </div>
+  </div>
+
+  <!-- ══ BOARD ══ -->
+  <div id="view-board" class="view active">
+    <div id="board-layout">
+      <div id="players-sidebar">
+        <div class="sidebar-title">⚔ Adventurers</div>
+        <div id="player-cards-list"></div>
+      </div>
+      <div id="center-panel">
+        <div id="map-section">
+          <div class="section-header">
+            <span>🗺 Battle Map</span>
+            <div class="map-tools">
+              <button class="map-btn active" id="tool-draw"  onclick="setTool('draw')">✏ Draw</button>
+              <button class="map-btn"        id="tool-erase" onclick="setTool('erase')">⌫ Erase</button>
+              <button class="map-btn"        id="tool-move"  onclick="setTool('move')">✥ Move</button>
+              <button class="map-btn"        onclick="clearMapDraw()">✕ Clear</button>
+              <label class="map-btn">🖼 Map <input type="file" accept="image/*" style="display:none" onchange="uploadMapBg(event)"/></label>
+            </div>
+          </div>
+          <div id="map-container">
+            <span class="map-orn tl">✦</span>
+            <span class="map-orn tr">✦</span>
+            <span class="map-orn bl">✦</span>
+            <span class="map-orn br">✦</span>
+            <!-- Victorian border ticks top -->
+            <span class="map-tick h" style="top:0;left:25%"></span>
+            <span class="map-tick h" style="top:0;left:50%;transform:translateX(-50%)"></span>
+            <span class="map-tick h" style="top:0;right:25%"></span>
+            <!-- bottom ticks -->
+            <span class="map-tick h" style="bottom:0;left:25%"></span>
+            <span class="map-tick h" style="bottom:0;left:50%;transform:translateX(-50%)"></span>
+            <span class="map-tick h" style="bottom:0;right:25%"></span>
+            <!-- left ticks -->
+            <span class="map-tick v" style="left:0;top:30%"></span>
+            <span class="map-tick v" style="left:0;top:50%;transform:translateY(-50%)"></span>
+            <span class="map-tick v" style="left:0;bottom:30%"></span>
+            <!-- right ticks -->
+            <span class="map-tick v" style="right:0;top:30%"></span>
+            <span class="map-tick v" style="right:0;top:50%;transform:translateY(-50%)"></span>
+            <span class="map-tick v" style="right:0;bottom:30%"></span>
+            <canvas id="map-bg-canvas"></canvas>
+            <canvas id="map-draw-canvas"></canvas>
+            <div id="map-tokens-layer"></div>
+          </div>
+        </div>
+        <div id="dice-section">
+          <div class="section-header"><span>🎲 Dice</span></div>
+          <div id="dice-area">
+            <div class="die-selector">
+              <button class="die-btn active" onclick="selectDie(20,this)">d20</button>
+              <button class="die-btn" onclick="selectDie(12,this)">d12</button>
+              <button class="die-btn" onclick="selectDie(10,this)">d10</button>
+              <button class="die-btn" onclick="selectDie(8,this)">d8</button>
+              <button class="die-btn" onclick="selectDie(6,this)">d6</button>
+              <button class="die-btn" onclick="selectDie(4,this)">d4</button>
+            </div>
+            <div class="dice-center">
+              <div id="dice-wrapper" onclick="rollDice()">
+                <svg id="dice-svg" class="dice-svg" viewBox="0 0 100 100">
+                  <polygon id="dice-shape" points="50,5 95,28 95,72 50,95 5,72 5,28" fill="#1e1208" stroke="#c9922a" stroke-width="2"/>
+                  <polygon id="dice-inner" points="50,15 85,32 85,68 50,85 15,68 15,32" fill="none" stroke="rgba(201,146,42,0.3)" stroke-width="1"/>
+                  <text id="dice-num" x="50" y="57" text-anchor="middle" font-family="'Cinzel',serif" font-size="26" font-weight="bold" fill="#c9922a">20</text>
+                </svg>
+                <div class="dice-hint">Click to Roll</div>
+              </div>
+              <div id="roll-result-box">
+                <div id="roll-num" class="roll-num"></div>
+                <div id="roll-label" class="roll-label"></div>
+                <div id="roll-by"    class="roll-by"></div>
+              </div>
+            </div>
+            <div class="modifier-row">
+              <label>Mod:</label>
+              <input type="number" id="dice-modifier" value="0" min="-20" max="20"/>
+              <input type="text" id="dice-label-input" placeholder="Label (optional)" maxlength="30"/>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="chat-panel">
+        <div class="sidebar-title">💬 Chat</div>
+        <div class="chat-type-tabs">
+          <button class="chat-tab active" data-type="ooc" onclick="setChatType('ooc')">OOC</button>
+          <button class="chat-tab" data-type="ic" onclick="setChatType('ic')">In Character</button>
+        </div>
+        <div id="chat-messages"></div>
+        <div id="chat-input-area">
+          <textarea id="chat-input" placeholder="Say something..." rows="2" maxlength="500"></textarea>
+          <button class="btn btn-sm" onclick="sendChat()">Send ↵</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SHEET ══ -->
+  <div id="view-sheet" class="view">
+    <div id="sheet-layout"><div id="sheet-scroll">
+      <div id="sheet-header">
+        <div id="sheet-avatar-area">
+          <div id="sheet-avatar" onclick="document.getElementById('avatar-upload').click()">
+            <span id="sheet-avatar-text">?</span>
+            <img id="sheet-avatar-img" style="display:none"/>
+            <div class="avatar-overlay">📷</div>
+          </div>
+          <input type="file" id="avatar-upload" accept="image/*" style="display:none" onchange="uploadAvatar(event)"/>
+        </div>
+        <div id="sheet-identity">
+          <input class="sheet-big-input" id="s-name" placeholder="Character Name" readonly/>
+          <div class="sheet-row-3">
+            <div class="sheet-field"><label>Class</label><input class="sheet-input" id="s-class" placeholder="Fighter, Wizard..." oninput="sheetChanged()"/></div>
+            <div class="sheet-field"><label>Race</label><input class="sheet-input" id="s-race" placeholder="Human, Elf..." oninput="sheetChanged()"/></div>
+            <div class="sheet-field"><label>Background</label><input class="sheet-input" id="s-background" placeholder="Soldier, Noble..." oninput="sheetChanged()"/></div>
+          </div>
+          <div class="sheet-row-4">
+            <div class="sheet-field"><label>Alignment</label><input class="sheet-input" id="s-alignment" placeholder="Chaotic Good..." oninput="sheetChanged()"/></div>
+            <div class="sheet-field"><label>Level</label><input class="sheet-input" id="s-level" type="number" min="1" max="20" oninput="sheetChanged()"/></div>
+            <div class="sheet-field"><label>XP</label><input class="sheet-input" id="s-xp" type="number" min="0" oninput="sheetChanged()"/></div>
+            <div class="sheet-field"><label>Prof. Bonus</label><input class="sheet-input" id="s-prof" type="number" oninput="sheetChanged()"/></div>
+          </div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="sheet-section">
+        <div class="sheet-section-title">⚔ Combat</div>
+        <div class="combat-stats">
+          <div class="combat-box"><label>AC</label><input type="number" id="s-ac" oninput="sheetChanged()"/></div>
+          <div class="combat-box"><label>Initiative</label><input type="number" id="s-init" oninput="sheetChanged()"/></div>
+          <div class="combat-box"><label>Speed</label><input type="number" id="s-speed" oninput="sheetChanged()"/></div>
+          <div class="combat-box hp-box"><label>HP</label>
+            <div class="hp-inputs"><input type="number" id="s-hp" oninput="sheetChanged()"/><span>/</span><input type="number" id="s-maxhp" oninput="sheetChanged()"/></div>
+            <div class="hp-bar"><div class="hp-fill" id="s-hp-bar"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="sheet-section">
+        <div class="sheet-section-title">💪 Ability Scores</div>
+        <div class="ability-grid" id="ability-grid"><!-- filled by JS --></div>
+      </div>
+      <div class="sheet-two-col">
+        <div class="sheet-section"><div class="sheet-section-title">🛡 Saving Throws</div><div class="saves-list" id="saves-list"></div></div>
+        <div class="sheet-section"><div class="sheet-section-title">✦ Skills</div><div class="skills-list" id="skills-list"></div></div>
+      </div>
+      <div class="sheet-section">
+        <div class="sheet-section-title">🎒 Inventory <button class="btn btn-sm" onclick="addInventoryItem()" style="margin-left:auto">+ Add</button></div>
+        <div id="inventory-list"></div>
+        <div id="add-item-row" style="display:none" class="add-row">
+          <input id="new-item-name" placeholder="Item name..." maxlength="40"/>
+          <input id="new-item-qty" placeholder="Qty" maxlength="10" style="width:60px"/>
+          <input id="new-item-note" placeholder="Notes..." maxlength="60"/>
+          <button class="btn btn-sm" onclick="confirmAddItem()">Add</button>
+          <button class="btn btn-sm btn-danger" onclick="cancelAddItem()">✕</button>
+        </div>
+      </div>
+      <div class="sheet-section">
+        <div class="sheet-section-title">✨ Spells &amp; Abilities <button class="btn btn-sm" onclick="addSpell()" style="margin-left:auto">+ Add</button></div>
+        <div id="spells-list"></div>
+        <div id="add-spell-row" style="display:none" class="add-row">
+          <input id="new-spell-name" placeholder="Name..." maxlength="40"/>
+          <input id="new-spell-level" placeholder="Level" style="width:60px" maxlength="10"/>
+          <input id="new-spell-desc" placeholder="Description..." maxlength="100"/>
+          <button class="btn btn-sm" onclick="confirmAddSpell()">Add</button>
+          <button class="btn btn-sm btn-danger" onclick="cancelAddSpell()">✕</button>
+        </div>
+      </div>
+      <div class="sheet-section">
+        <div class="sheet-section-title">⭐ Features &amp; Traits <button class="btn btn-sm" onclick="addFeature()" style="margin-left:auto">+ Add</button></div>
+        <div id="features-list"></div>
+        <div id="add-feature-row" style="display:none" class="add-row">
+          <input id="new-feature-name" placeholder="Feature name..." maxlength="40"/>
+          <input id="new-feature-desc" placeholder="Description..." maxlength="120"/>
+          <button class="btn btn-sm" onclick="confirmAddFeature()">Add</button>
+          <button class="btn btn-sm btn-danger" onclick="cancelAddFeature()">✕</button>
+        </div>
+      </div>
+      <div class="sheet-section">
+        <div class="sheet-section-title">📖 Backstory</div>
+        <textarea class="sheet-textarea" id="s-backstory" placeholder="Tell your tale..." oninput="sheetChanged()"></textarea>
+      </div>
+      <div class="sheet-section">
+        <div class="sheet-section-title">🔰 Proficiencies &amp; Languages</div>
+        <textarea class="sheet-textarea" id="s-proficiencies" rows="3" placeholder="Weapons, armor, tools, languages..." oninput="sheetChanged()"></textarea>
+      </div>
+      <div style="height:30px"></div>
+    </div></div>
+  </div>
+
+  <!-- ══ STORY ══ -->
+  <div id="view-story" class="view">
+    <div id="story-layout">
+      <div class="section-header">
+        <span>📖 Story Gallery</span>
+        <label class="btn btn-sm">🖼 Upload <input type="file" accept="image/*" style="display:none" onchange="uploadStoryImage(event)"/></label>
+      </div>
+      <div id="story-caption-row" style="display:none" class="story-caption-row">
+        <input id="story-caption" placeholder="Caption..." maxlength="120"/>
+        <button class="btn btn-sm" onclick="confirmStoryUpload()">Post</button>
+        <button class="btn btn-sm btn-danger" onclick="cancelStoryUpload()">✕</button>
+      </div>
+      <div id="story-gallery"></div>
+    </div>
+  </div>
+
+  <!-- ══ DM PANEL ══ -->
+  <div id="view-dm" class="view">
+    <div id="dm-layout">
+      <div class="dm-sidebar">
+        <div class="sidebar-title">👑 DM Controls</div>
+        <div class="dm-section">
+          <div class="sheet-section-title">⚔ Battle</div>
+          <button class="btn btn-primary" onclick="openBattleSetup()" style="margin-bottom:8px">+ New Encounter</button>
+          <div id="dm-battle-status"></div>
+        </div>
+        <div class="dm-section">
+          <div class="sheet-section-title">👥 Players</div>
+          <div id="dm-players-list"></div>
+        </div>
+      </div>
+      <div class="dm-main" id="dm-main-area">
+        <div class="dm-placeholder">
+          <div style="font-size:48px">👑</div>
+          <div style="font-family:var(--fn-title);color:var(--gold2);margin:10px 0">Dungeon Master</div>
+          <div style="color:var(--parch2);font-style:italic">Your realm awaits. Begin a new encounter to command the battle.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /#app -->
+
+<!-- ══ BATTLE SCREEN OVERLAY ══ -->
+<div id="battle-overlay" style="display:none">
+  <div id="battle-header">
+    <div class="battle-title-box">
+      <div id="battle-title-text">⚔ BATTLE ⚔</div>
+      <div id="battle-round-info">Round 1</div>
+    </div>
+    <div id="initiative-bar"></div>
+  </div>
+  <div id="battle-field">
+    <div id="battle-monsters-row">
+      <div class="battle-row-label">MONSTERS</div>
+      <div id="battle-monsters-front" class="battle-combatant-row"></div>
+      <div class="battle-row-divider">— Back Row —</div>
+      <div id="battle-monsters-back" class="battle-combatant-row"></div>
+    </div>
+    <div id="battle-vs-divider">⚔</div>
+    <div id="battle-players-row">
+      <div class="battle-row-label">ADVENTURERS</div>
+      <div id="battle-players-front" class="battle-combatant-row"></div>
+      <div class="battle-row-divider">— Back Row —</div>
+      <div id="battle-players-back" class="battle-combatant-row"></div>
+    </div>
+  </div>
+  <div id="battle-controls" class="dm-only-battle" style="display:none">
+    <button class="btn btn-sm" onclick="nextTurn()">Next Turn ▶</button>
+    <button class="btn btn-sm btn-danger" onclick="endBattle()">End Battle ✕</button>
+  </div>
+</div>
+
+<!-- ══ BATTLE SETUP MODAL ══ -->
+<div id="battle-setup-modal" style="display:none">
+  <div class="modal-box"><span class="mc tl"></span><span class="mc tr"></span><span class="mc bl"></span><span class="mc br"></span>
+    <div class="modal-title">⚔ New Encounter Setup</div>
+    <div class="divider"></div>
+    <div id="monster-list-editor"></div>
+    <button class="btn btn-sm" onclick="addMonsterSlot()" style="margin:8px 0">+ Add Monster</button>
+    <div class="divider"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="launchBattle()">⚔ Launch Encounter</button>
+      <button class="btn btn-sm btn-danger" onclick="closeBattleSetup()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TOAST & SAVE ══ -->
+<div class="toast" id="toast"></div>
+<div class="save-dot" id="save-dot">✦ Saved</div>
+
+<!-- BATTLE INTRO SPLASH -->
+<div id="battle-splash" style="display:none">
+  <div class="splash-content">
+    <div class="splash-swords">⚔</div>
+    <div class="splash-text">BATTLE!</div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
