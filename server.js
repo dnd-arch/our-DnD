@@ -10,7 +10,7 @@ const { v4: uuidv4 } = require('uuid');
 const app    = express();
 const server = http.createServer(app);
 const wss    = new WebSocket.Server({ server });
-const PORT   = 3000;
+const PORT = process.env.PORT || 3000;
 
 const DATA_FILE   = path.join(__dirname, 'data.json');
 const UPLOADS_DIR = path.join(__dirname, 'public', 'uploads');
